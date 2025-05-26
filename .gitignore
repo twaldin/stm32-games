@@ -1,0 +1,14 @@
+#compiled files
+*.elf
+*.bin
+*.hex
+*.lst
+*.map
+
+.cache/
+
+#libopencm3 library (MUST BE CLONED INTO ROOT AND 'make' IN libopencm3 DIR)
+libopencm3/
+
+compile_commands.json
+
