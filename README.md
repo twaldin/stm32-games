@@ -1,5 +1,7 @@
 # Games with STM32 + ST7789 
-This project is for my personal experimentation with stm32f103c8 microcontroller and some screen that uses a st7789 spi display. Currently only contains snake game, but im working on making tetris
+This project is for my personal experimentation with stm32f103c8 microcontroller and some screen that uses a st7789 spi display. Currently only contains snake game, but im working on making tetris.
+
+**[snake demo video]()**
 
 # Requirements
 This project uses an st7789 **[driver](https://github.com/abhra0897/stm32f1_st7789_spi)** which requires the **[libopencm3](https://github.com/libopencm3/libopencm3)** library to use. 
