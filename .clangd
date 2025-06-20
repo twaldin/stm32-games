@@ -1,0 +1,9 @@
+CompileFlags:
+  # Specify the compiler to use
+  Compiler: arm-none-eabi-gcc
+  
+  # Remove unsupported flags
+  Remove: [-mthumb-interwork]
+  
+  # Add any necessary include paths
+  Add: [-Ilibopencm3/include, -Ifonts, -Idriver, -I.]

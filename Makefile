@@ -14,7 +14,7 @@ CP=$(TOOLCHAIN_PREFIX)-objcopy
 OD=$(TOOLCHAIN_PREFIX)-objdump
 
 # Microcontroller family
-DEFS = -DSTM32F1
+DEFS = -DSTM32F1 
 # Cortex core
 MCU = cortex-m3
 MCFLAGS = -mcpu=$(MCU)
@@ -26,9 +26,11 @@ SRCS += driver/st7789_stm32_spi.c
 SRCS += libopencm3/lib/cm3/vector.c
 SRCS += snake.c
 ################## Includes ########################
-INCLS = -Ilibopencm3/include
+INCLS += -Ilibopencm3/include
 INCLS += -Ifonts
 INCLS += -Idriver
+INCLS += -Iimages
+INCLS += games.h
 ################## Libs ########################
 LIBS = -Llibopencm3/lib
 LIBS +=	-lopencm3_stm32f1
@@ -36,9 +38,10 @@ LIBS +=	-lopencm3_stm32f1
 ################ Compiler Flags ######################
 CFLAGS = -ggdb
 CFLAGS += -Wall -Wextra -Warray-bounds
-CFLAGS += -mlittle-endian -mthumb -mthumb-interwork
+CFLAGS += -mlittle-endian -mthumb
 CFLAGS += -mfloat-abi=soft
 CFLAGS += --specs=nano.specs
+CFLAGS += --sysroot=/usr/arm-none-eabi
 CFLAGS += $(MCFLAGS)
 CFLAGS += -Os	
 
@@ -54,6 +57,7 @@ LFLAGS += --specs=nosys.specs
 LFLAGS += -Wl,--gc-sections -static
 LFLAGS += -Wl,--Map=$(TARGET).map
 LFLAGS += -Wl,--cref
+LFLAGS += --sysroot=/usr/arm-none-eabi
 LFLAGS += --static
 LFLAGS += -nostartfiles #We're using no start file. Without this flag, get linker error
 

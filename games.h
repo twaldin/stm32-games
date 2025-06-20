@@ -1,11 +1,10 @@
 #include <libopencm3/cm3/systick.h>
-#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/flash.h>
-#include <font_ubuntu_mono_24.h>
+#include <libopencm3/stm32/rcc.h>
 #include <st7789_stm32_spi.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "fonts/font_ubuntu_mono_24.h"
+#include "images/apple.h"
 #include <stdbool.h>
 #include <stdint.h>
 
