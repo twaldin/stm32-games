@@ -4,7 +4,9 @@
 #define SNW 20
 
 void delay_ms(uint32_t ms);
-void draw_game(bool snake[WIDTH][HEIGHT], bool apples[WIDTH][HEIGHT]);
+static void st_fill_semicircle(int16_t x0, int16_t y0, int16_t r, uint8_t dir, uint16_t color);
+static void draw_rounded_end(uint8_t i, uint8_t j, uint8_t dir, uint16_t color);
+void draw_game(bool snake[WIDTH][HEIGHT], bool apples[WIDTH][HEIGHT], uint8_t headx, uint8_t heady, uint8_t tailx, uint8_t taily, uint8_t head_direction, uint8_t tail_dir[WIDTH][HEIGHT]);
 void move_snake(uint8_t *headx, uint8_t *heady, uint8_t *tailx, uint8_t *taily,
                 uint8_t direction, bool snake[WIDTH][HEIGHT], bool *alive,
                 uint8_t tail_dir[WIDTH][HEIGHT], bool apples[WIDTH][HEIGHT],
@@ -14,6 +16,8 @@ void spawn_apple(bool snake[WIDTH][HEIGHT], bool apples[WIDTH][HEIGHT]);
 uint32_t calculate_game_speed(uint16_t score);
 void handle_apple_eaten(uint8_t x, uint8_t y, bool apples[WIDTH][HEIGHT],
                         uint16_t *score);
+static void st_fill_quarter_circle(int16_t cx, int16_t cy, int16_t r, uint8_t quadrant, uint16_t color);
+static void draw_corner_segment(uint8_t i, uint8_t j, bool from_left, bool from_right, bool from_up, bool from_down, uint16_t color);
 
 uint64_t systick_count = 0;
 
@@ -70,7 +74,7 @@ void snake_game(void) {
     uint32_t current_game_speed = calculate_game_speed(score);
 
     if (systick_count - last_game_update >= current_game_speed) {
-      draw_game(snake, apples);
+      draw_game(snake, apples, headx, heady, tailx, taily, direction, tail_dir);
       move_snake(&headx, &heady, &tailx, &taily, direction, snake, &alive,
                  tail_dir, apples, &score);
       last_game_update = systick_count;
@@ -85,13 +89,30 @@ void snake_game(void) {
   st_draw_string(30, 30, "YOU LOSE", ST_COLOR_BLACK, &font_ubuntu_mono_24);
 }
 
-void draw_game(bool snake[WIDTH][HEIGHT], bool apples[WIDTH][HEIGHT]) {
+void draw_game(bool snake[WIDTH][HEIGHT], bool apples[WIDTH][HEIGHT], uint8_t headx, uint8_t heady, uint8_t tailx, uint8_t taily, uint8_t head_direction, uint8_t tail_dir[WIDTH][HEIGHT]) {
   uint8_t i, j;
   st_fill_screen(ST_COLOR_BLACK);
   for (i = 0; i < WIDTH; i++) {
     for (j = 0; j < HEIGHT; j++) {
       if (snake[i][j]) {
-        st_fill_rect_fast(i * SNW, j * SNW, SNW, SNW, ST_COLOR_WHITE);
+        if (i == headx && j == heady) {
+            draw_rounded_end(i, j, head_direction, ST_COLOR_DARKGREEN);
+        } else if (i == tailx && j == taily) {
+            uint8_t tail_end_dir = (tail_dir[i][j] + 2) % 4;
+            draw_rounded_end(i, j, tail_end_dir, ST_COLOR_DARKGREEN);
+        } else {
+            bool n_left = (i > 0) && snake[i-1][j];
+            bool n_right = (i < WIDTH-1) && snake[i+1][j];
+            bool n_up = (j > 0) && snake[i][j-1];
+            bool n_down = (j < HEIGHT-1) && snake[i][j+1];
+            int n_count = n_left + n_right + n_up + n_down;
+
+            if (n_count == 2 && !((n_left && n_right) || (n_up && n_down))) {
+                draw_corner_segment(i, j, n_left, n_right, n_up, n_down, ST_COLOR_DARKGREEN);
+            } else {
+                st_fill_rect_fast(i * SNW, j * SNW, SNW, SNW, ST_COLOR_DARKGREEN);
+            }
+        }
       } else if (apples[i][j]) {
         // Draw apple bitmap that perfectly fills the cell
         st_draw_bitmap(i * SNW, j * SNW, &apple_image);
@@ -217,6 +238,81 @@ void new_tail(uint8_t *tailx, uint8_t *taily, uint8_t tail_dir[WIDTH][HEIGHT]) {
   default:
     break;
   }
+}
+
+static void st_fill_quarter_circle(int16_t cx, int16_t cy, int16_t r, uint8_t quadrant, uint16_t color) {
+    for (int16_t py = 0; py <= r; py++) {
+        for (int16_t px = 0; px <= r; px++) {
+            if (px*px + py*py > r*r) continue;
+
+            if (quadrant == 0) { // top-left
+                st_draw_pixel(cx - px, cy - py, color);
+            } else if (quadrant == 1) { // top-right
+                st_draw_pixel(cx + px, cy - py, color);
+            } else if (quadrant == 2) { // bottom-left
+                st_draw_pixel(cx - px, cy + py, color);
+            } else if (quadrant == 3) { // bottom-right
+                st_draw_pixel(cx + px, cy + py, color);
+            }
+        }
+    }
+}
+
+static void draw_corner_segment(uint8_t i, uint8_t j, bool from_left, bool from_right, bool from_up, bool from_down, uint16_t color) {
+    uint16_t x = i * SNW;
+    uint16_t y = j * SNW;
+    uint16_t r = SNW;
+    uint16_t bg_color = ST_COLOR_BLACK;
+
+    st_fill_rect_fast(x, y, SNW, SNW, bg_color);
+
+    if (from_right && from_down) { // Snake is coming from right and going down, open corner is top-left
+        st_fill_quarter_circle(x + SNW, y + SNW, r, 0, color); // Center bottom-right, carve top-left
+    } else if (from_left && from_down) { // Snake is coming from left and going down, open corner is top-right
+        st_fill_quarter_circle(x, y + SNW, r, 1, color);       // Center bottom-left, carve top-right
+    } else if (from_right && from_up) { // Snake is coming from right and going up, open corner is bottom-left
+        st_fill_quarter_circle(x + SNW, y, r, 2, color);     // Center top-right, carve bottom-left
+    } else if (from_left && from_up) { // Snake is coming from left and going up, open corner is bottom-right
+        st_fill_quarter_circle(x, y, r, 3, color);           // Center top-left, carve bottom-right
+    }
+}
+
+static void st_fill_semicircle(int16_t x0, int16_t y0, int16_t r, uint8_t dir, uint16_t color) {
+    for (int16_t py = -r; py <= r; py++) {
+        for (int16_t px = -r; px <= r; px++) {
+            if (px*px + py*py > r*r) continue;
+
+            if (dir == 0 && px >= 0) { // right
+                st_draw_pixel(x0 + px, y0 + py, color);
+            } else if (dir == 1 && py >= 0) { // down
+                 st_draw_pixel(x0 + px, y0 + py, color);
+            } else if (dir == 2 && px <= 0) { // left
+                 st_draw_pixel(x0 + px, y0 + py, color);
+            } else if (dir == 3 && py <= 0) { // up
+                 st_draw_pixel(x0 + px, y0 + py, color);
+            }
+        }
+    }
+}
+
+static void draw_rounded_end(uint8_t i, uint8_t j, uint8_t dir, uint16_t color) {
+    uint16_t x = i * SNW;
+    uint16_t y = j * SNW;
+    uint16_t r = SNW / 2;
+
+    if (dir == 0) { // right
+        st_fill_rect_fast(x, y, r, SNW, color);
+    } else if (dir == 1) { // down
+        st_fill_rect_fast(x, y, SNW, r, color);
+    } else if (dir == 2) { // left
+        st_fill_rect_fast(x + r, y, r, SNW, color);
+    } else if (dir == 3) { // up
+        st_fill_rect_fast(x, y + r, SNW, r, color);
+    }
+
+    int16_t cx = x + r;
+    int16_t cy = y + r;
+    st_fill_semicircle(cx, cy, r, dir, color);
 }
 
 uint32_t calculate_game_speed(uint16_t score) {
