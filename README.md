@@ -1,3 +1,7 @@
+# Demo
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/h04urzrEfU4?si=V7YgSBaAuW-LtUow" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 # STM32 and ST7789 Games
 
 This project is a personal project for experimenting with the STM32F103C8T6 microcontroller and a display with a st7789 driver. The goal is to create a simple, handheld game console. This repository contains all the necessary code, libraries, and instructions to build your own. Currently only has snake game.
