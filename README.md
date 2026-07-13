@@ -1,3 +1,5 @@
+<img src=".github/social-card.png" alt="stm32-games" width="100%" />
+
 # Demo
 
 https://github.com/user-attachments/assets/70148411-9735-4580-92b2-bc103c99f7ae
