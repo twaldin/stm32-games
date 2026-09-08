@@ -6,7 +6,7 @@ https://github.com/user-attachments/assets/70148411-9735-4580-92b2-bc103c99f7ae
 
 # STM32 and ST7789 Games
 
-This project is a personal project for experimenting with the STM32F103C8T6 microcontroller and a display with a st7789 driver. The goal is to create a simple, handheld game console. This repository contains all the necessary code, libraries, and instructions to build your own. Currently only has snake game.
+This project is a personal project for experimenting with the STM32F103C8T6 microcontroller and a display with a st7789 driver. The goal is to create a simple, handheld game console. This repository contains the game code and display driver; libopencm3 must be cloned and built separately as described below. Currently only has snake game.
 
 ## Hardware
 
@@ -22,8 +22,8 @@ To build this project, you will need the following hardware components:
 
 This project relies on the following software:
 
-*   **[libopencm3](https://github.com/libopencm3/libopencm3):** open-source library for ARM Cortex-M microcontrollers.
-*   **[st7789 driver](https://github.com/abhra0897/stm32f1_st7789_spi):** A driver for the ST7789 display.
+*   **[libopencm3](https://github.com/libopencm3/libopencm3):** open-source library for ARM Cortex-M microcontrollers. The Makefile expects it in `libopencm3/` inside this checkout.
+*   **[st7789 driver](https://github.com/abhra0897/stm32f1_st7789_spi):** A driver for the ST7789 display, included in [`driver/`](driver/). No separate driver clone is needed.
 *   **[ARM GCC Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads):**
     *   **Linux (Debian/Ubuntu):** `sudo apt install gcc-arm-none-eabi binutils-arm-none-eabi`
     *   **Linux (Arch):** `sudo pacman -S arm-none-eabi-gcc arm-none-eabi-binutils`
@@ -33,6 +33,7 @@ This project relies on the following software:
     *   **Linux (Debian/Ubuntu):** `sudo apt install build-essential`
     *   **Linux (Arch):** `sudo pacman -S make`
     *   **macOS:** Install Xcode Command Line Tools. `xcode-select --install`
+*   **Git and Python 3:** Git is used to clone the repositories; libopencm3 requires Python to generate code during its build.
 *   **[st-flash](https://github.com/stlink-org/stlink):** For flashing code to the device. Follow the installation instructions in the official repository. You will likely need `libusb-1.0-0-dev` (`sudo apt install libusb-1.0-0-dev` on debian).
 
 ## Wiring
@@ -59,36 +60,52 @@ This project relies on the following software:
 | RIGHT  | GPIO B14    |
 | DOWN   | GPIO B15    |
 
+**Mapping discrepancy:** The table above preserves the original wiring notes. In the current [`main.c`](main.c), `is_down_pressed()` reads PB13 and `is_up_pressed()` reads PB15, the reverse of the UP/DOWN labels above. Confirm the physical button orientation before changing the wiring or firmware; it has not been verified here.
+
 ## Building
+
+The current [`Makefile`](Makefile) uses the `arm-none-eabi` toolchain, Newlib (`nano.specs` and `nosys.specs`), and a hard-coded `--sysroot=/usr/arm-none-eabi` in both `CFLAGS` and `LFLAGS`. Ensure the toolchain binaries are on `PATH` and its C library/specs are installed. The package commands above do not guarantee that sysroot layout; other installations, including macOS, may require adjusting those Makefile paths. These instructions have been checked against source, not validated by compiling or running hardware.
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/your-repository.git
-    cd your-repository
+    git clone https://github.com/twaldin/stm32-games.git
+    cd stm32-games
     ```
 
-2.  **Clone the required libraries:**
+2.  **Clone libopencm3 into the project directory:**
     ```bash
     git clone https://github.com/libopencm3/libopencm3
     ```
 
-3.  **Build libopencm3:**
+3.  **Build libopencm3 for STM32F1:**
     ```bash
     cd libopencm3
-    make
+    make TARGETS=stm32/f1
     cd ..
     ```
 
 4.  **Build the project:**
     ```bash
-    make
+    make PREFIX=arm-none-eabi
     ```
+
+    `PREFIX` is needed because the size-report recipe uses `$(PREFIX)-size`, while the other recipes use `TOOLCHAIN_PREFIX`. The build produces `main.elf`, `main.bin`, `main.hex`, `main.lst`, and `main.map`, and prints a size report. It does not flash the device.
+
+The dependency is not pinned to a tested libopencm3 revision; compatibility with its latest upstream version remains unverified.
+
+## Source layout
+
+*   [`main.c`](main.c): clock, button and display setup, start screen, and launch of Snake.
+*   [`snake.c`](snake.c) and [`games.h`](games.h): Snake implementation and shared declarations.
+*   [`driver/st7789_stm32_spi.h`](driver/st7789_stm32_spi.h): display pin, SPI, and DMA configuration.
+*   [`fonts/`](fonts/) and [`images/`](images/): font and bitmap assets.
+*   [`Makefile`](Makefile), [`stm32f103xb.ld`](stm32f103xb.ld), and [`cortex-m-generic.ld`](cortex-m-generic.ld): build recipes and linker scripts. The selected memory map allocates 128 KiB flash and 20 KiB RAM; confirm that capacity for your board rather than assuming it from the Blue Pill name.
 
 ## Flashing
 
 To flash the firmware onto the STM32F103C8, you will need to have the `st-flash` utility installed. You can install it by following the instructions **[here](https://github.com/stlink-org/stlink)**.
 
-Once `st-flash` is installed, connect the ST-Link V2 to your computer and the STM32F103C8, then run the following command:
+Build the firmware first: `make burn` only writes the existing `main.bin` and does not rebuild it. Once `st-flash` is installed, connect the ST-Link V2 to your computer and the STM32F103C8, then run the following command:
 
 ```bash
 make burn
@@ -106,5 +123,4 @@ Contributions are welcome! If you have any ideas, suggestions, or improvements, 
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for more details.
-                                            
+Project code is licensed under the [MIT License](LICENSE), except where a file carries its own license. The display driver retains its [MIT license and Avra Mitra attribution](driver/LICENSE). The libopencm3-derived linker scripts carry LGPL-3.0-or-later notices; libopencm3 itself is also LGPL-3.0-or-later (see its `COPYING.LGPL3` and `COPYING.GPL3` files after cloning).
