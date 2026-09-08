@@ -103,7 +103,7 @@ The dependency is not pinned to a tested libopencm3 revision; compatibility with
 
 ## Flashing
 
-To flash the firmware onto the STM32F103C8, you will need to have the `st-flash` utility installed. You can install it by following the instructions **[here](https://github.com/stlink-org/stlink)**.
+To flash the firmware onto the STM32F103C8, you will need to have the `st-flash` utility installed. Follow the **[stlink installation instructions](https://github.com/stlink-org/stlink)**.
 
 Build the firmware first: `make burn` only writes the existing `main.bin` and does not rebuild it. Once `st-flash` is installed, connect the ST-Link V2 to your computer and the STM32F103C8, then run the following command:
 
